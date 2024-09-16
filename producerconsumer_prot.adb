@@ -20,6 +20,8 @@ procedure ProducerConsumer_Prot is
    use Random_Delay;
    G : Generator;
 
+   m_Buffer : Buffer.CircularBuffer;
+
    -- ==> Complete code: Use Buffer
 
    task type Producer;
@@ -34,6 +36,7 @@ procedure ProducerConsumer_Prot is
 			
          -- ==> Complete code: Write to Buffer
 			
+			m_Buffer.Put(i);
          -- Next 'Release' in 50..250ms
          Next := Next + Milliseconds(Random(G));
          delay until Next;
@@ -49,7 +52,7 @@ procedure ProducerConsumer_Prot is
          -- Read from X
 			
          -- ==> Complete code: Read from Buffer
-			
+			m_Buffer.Get(X);
          Put_Line(Integer'Image(X));
          Next := Next + Milliseconds(Random(G));
          delay until Next;
