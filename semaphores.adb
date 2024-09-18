@@ -7,13 +7,13 @@ package body Semaphores is
       entry Wait 
 		when Count > 0 is 
 	begin
-		Count = Count - 1;
-    end
+		Count := Count - 1;
+    end;
       entry Signal 
 		when Count < MaxCount is 
 		begin
-			Count = Count + 1;
-		end
+			Count := Count + 1;
+		end;
    end CountingSemaphore;
 end Semaphores;
 
