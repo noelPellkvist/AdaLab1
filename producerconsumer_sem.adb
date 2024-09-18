@@ -31,9 +31,9 @@ procedure ProducerConsumer_Sem is
 	--    1. Semaphore 'NotFull' to indicate that buffer is not full
 	--    2. Semaphore 'NotEmpty' to indicate that buffer is not empty
 	--    3. Semaphore 'AtomicAccess' to ensure an atomic access to the buffer
-	NotFull : Semaphores.CountingSemaphore(1, 1);
-	NotEmpty : Semaphores.CountingSemaphore(1, 0);
-	AtomicAccess : Semaphores.CountingSemaphore(1, 0);
+	NotFull : Semaphores.CountingSemaphore(4, 4);
+	NotEmpty : Semaphores.CountingSemaphore(4, 0);
+	AtomicAccess : Semaphores.CountingSemaphore(1, 1);
 	
    task type Producer;
 
@@ -42,35 +42,40 @@ procedure ProducerConsumer_Sem is
    task body Producer is
       Next : Time;
    begin
-	Put_Line("producer task");
       Next := Clock;
       for I in 1..N loop
          -- => Complete Code: Write to Buffer
-		AtomicAccess.Wait;
+		
+		NotFull.Wait;
+		Put_Line("Writing");
 		B(In_Ptr) := I;
 		In_Ptr := In_Ptr + 1;
         Count := Count + 1;
          -- Next 'Release' in 50..250ms
          Next := Next + Milliseconds(Random(G));
-		AtomicAccess.Signal;
-         --delay until Next;
+		NotFull.Signal;
+         delay until Next;
       end loop;
    end;
 
    task body Consumer is
       Next : Time;
    begin
-	Put_Line("consumer task");
+	
       Next := Clock;
       for I in 1..N loop
          -- => Complete Code: Read from Buffer
-		AtomicAccess.Wait;
+		--NotEmpty.Wait;
+		--AtomicAccess.Wait;
+		--Put_Line("Reading");
 		 --tmp : Integer := B(Out_Ptr);
 		 Out_Ptr := Out_Ptr + 1;
          Count := Count - 1;	
 			-- Next 'Release' in 50..250ms
          Next := Next + Milliseconds(Random(G));
-		 AtomicAccess.Signal;
+		--AtomicAccess.Signal;
+		--NotFull.Signal;
+		--NotEmpty.Signal;
          delay until Next;
       end loop;
    end;
