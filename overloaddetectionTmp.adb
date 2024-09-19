@@ -33,15 +33,14 @@ procedure overloaddetection is
      return X;
    end F;
 
-   task type Helper is
-     entry Check_Health(F : in Boolean);
+   task Helper is
+     entry Check_Health(flag : in Boolean);
    end Helper;
 
    task body Helper is
-     Health_Flag : Boolean := True;
    begin
      loop
-        accept Check_Health(F : in Boolean) do
+        accept Check_Health(flag : in Boolean) do
 			Put_Line("Checking health");
 		end Check_Health;
      end loop;
