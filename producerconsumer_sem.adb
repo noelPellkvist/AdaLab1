@@ -47,13 +47,14 @@ procedure ProducerConsumer_Sem is
          -- => Complete Code: Write to Buffer
 		
 		NotFull.Wait;
-		Put_Line("Writing");
+		AtomicAccess.Wait;
 		B(In_Ptr) := I;
 		In_Ptr := In_Ptr + 1;
         Count := Count + 1;
          -- Next 'Release' in 50..250ms
          Next := Next + Milliseconds(Random(G));
-		NotFull.Signal;
+		AtomicAccess.Signal;
+		NotEmpty.Signal;
          delay until Next;
       end loop;
    end;
@@ -65,17 +66,15 @@ procedure ProducerConsumer_Sem is
       Next := Clock;
       for I in 1..N loop
          -- => Complete Code: Read from Buffer
-		--NotEmpty.Wait;
-		--AtomicAccess.Wait;
-		--Put_Line("Reading");
-		 --tmp : Integer := B(Out_Ptr);
+		NotEmpty.Wait;
+		AtomicAccess.Wait;
+		Put_Line(Integer'Image(B(Out_Ptr)));
 		 Out_Ptr := Out_Ptr + 1;
          Count := Count - 1;	
 			-- Next 'Release' in 50..250ms
          Next := Next + Milliseconds(Random(G));
-		--AtomicAccess.Signal;
-		--NotFull.Signal;
-		--NotEmpty.Signal;
+		AtomicAccess.Signal;
+		NotFull.Signal;
          delay until Next;
       end loop;
    end;
