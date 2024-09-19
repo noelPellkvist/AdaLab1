@@ -33,33 +33,28 @@ function To_Float(TS : Time_Span) return Float is
    end F;
 
 task Watchdog_Timer is
-	pragma Priority(20);
-	 entry Reset_Timer;
-	entry TimerExpired;
+	pragma Priority(10);
+	entry CheckHealth;
    end Watchdog_Timer;
 
    task body Watchdog_Timer is
-     Timer : Ada.Real_Time.Time := Ada.Real_Time.Clock;
+
+	LastTime : Time;
    begin
-	delay until Ada.Real_Time.Clock + Milliseconds(100);
+	LastTime := Clock;
      loop
-         accept Reset_Timer do
-			if (Ada.Real_Time.Clock - Timer) > Milliseconds(1200) then
-				Put_Line("Crash");
-				Duration_IO.Put(To_Duration(Ada.Real_Time.Clock - Timer), 1, 3);
-			else 
-				Put_Line("NO CRASH");
-			end if;
-			Timer := Ada.Real_Time.Clock;
-           end Reset_Timer;
-		delay until Ada.Real_Time.Clock + Milliseconds(1200);
-		
+		select 
+			accept CheckHealth do		-- this only gets called when the helper task is running	
+				if (Clock - LastTime) > Milliseconds(1220) then
+					Put_Line("CRASH-----------------------------------");
+				end if;
+				LastTime := Clock;
+				delay until Ada.Real_Time.Clock + Milliseconds(1100);
+			end CheckHealth;
+			or
+				delay until Ada.Real_Time.Clock + Milliseconds(100);
+		end select;
      end loop;
-	entry TimerExpired
-		 when (Ada.Real_Time.Clock - Timer) > Milliseconds(1200) is
-	begin
-	Put_Line("Crash");
-	end;
    end Watchdog_Timer;
 
 task Helper is
@@ -67,9 +62,11 @@ task Helper is
    end Helper;
 
    task body Helper is
+	LastTime : Time;
    begin
+	LastTime := Clock;
      loop
-		Watchdog_Timer.Reset_timer;
+		Watchdog_Timer.CheckHealth; --Checking the health everytime the helper task runs
 		delay until Ada.Real_Time.Clock + Milliseconds(100);
      end loop;
    end Helper;
@@ -139,10 +136,9 @@ begin
    Task_1 : T(1, 5, Warm_Up_Time, 300, 100, 300);
    Task_2 : T(2, 4, Warm_Up_Time, 400, 100, 400);
    Task_3 : T(3, 3, Warm_Up_Time, 600, 100, 600);
-   --Task_4 : T(4, 2, Warm_Up_Time, 1200, 200, 1200);
+   Task_4 : T(4, 2, Warm_Up_Time, 1200, 200, 1200);
 begin
 	Start := Clock; -- Central Start Time
-	Watchdog_Timer.TimerExpired;
 null;
 end overloaddetection;
 
