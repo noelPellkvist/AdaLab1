@@ -4,16 +4,15 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Float_Text_IO;
 with Ada.Real_Time; use Ada.Real_Time;
 
-procedure Rms2 is
+procedure overloaddetection is
    package Duration_IO is new Ada.Text_IO.Fixed_IO(Duration);
    package Int_IO is new Ada.Text_IO.Integer_IO(Integer);
 
-   Start : Time; -- Start Time of the System
-   Calibrator: constant Integer := 800; -- Calibration for correct timing
+	Start : Time; -- Start Time of the System
+   Calibrator: constant Integer := 1200; -- Calibration for correct timing
    Warm_Up_Time: constant Integer := 100; -- Warmup time in milliseconds
 
-   -- Conversion Function: Time_Span to Float
-   function To_Float(TS : Time_Span) return Float is
+function To_Float(TS : Time_Span) return Float is
      SC : Seconds_Count;
      Frac : Time_Span;
    begin
@@ -33,39 +32,49 @@ procedure Rms2 is
      return X;
    end F;
 
-   task type Helper is
-     entry Check_Health(Flag : Boolean);
-   end Helper;
-
-   task body Helper is
-     Health_Flag : Boolean := True;
-   begin
-     loop
-        -- ???
-     end loop;
-   end Helper;
-
-   task type Watchdog_Timer is
-     entry Health(Flag : Boolean);
+task Watchdog_Timer is
+	pragma Priority(20);
+	 entry Reset_Timer;
+	entry TimerExpired;
    end Watchdog_Timer;
 
    task body Watchdog_Timer is
      Timer : Ada.Real_Time.Time := Ada.Real_Time.Clock;
    begin
+	delay until Ada.Real_Time.Clock + Milliseconds(100);
      loop
-       Timer := Timer + Milliseconds(1300); -- accounting for the phi (1200 + 100)?
-       delay until Timer;
-         accept Health (Flag : Boolean) do
-           if Flag then
-              Ada.Text_IO.Put_Line("System's healthy");
-           else
-              Ada.Text_IO.Put_Line("Overload.");
-           end if;
+         accept Reset_Timer do
+			if (Ada.Real_Time.Clock - Timer) > Milliseconds(1200) then
+				Put_Line("Crash");
+				Duration_IO.Put(To_Duration(Ada.Real_Time.Clock - Timer), 1, 3);
+			else 
+				Put_Line("NO CRASH");
+			end if;
+			Timer := Ada.Real_Time.Clock;
+           end Reset_Timer;
+		delay until Ada.Real_Time.Clock + Milliseconds(1200);
+		
      end loop;
+	entry TimerExpired
+		 when (Ada.Real_Time.Clock - Timer) > Milliseconds(1200) is
+	begin
+	Put_Line("Crash");
+	end;
    end Watchdog_Timer;
 
-   -- Workload Model for a Parametric Task
-   task type T(Id: Integer; Prio: Integer; Phase: Integer; Period : Integer; Computation_Time : Integer; Relative_Deadline: Integer) is
+task Helper is
+	pragma Priority(1);
+   end Helper;
+
+   task body Helper is
+   begin
+     loop
+		Watchdog_Timer.Reset_timer;
+		delay until Ada.Real_Time.Clock + Milliseconds(100);
+     end loop;
+   end Helper;
+
+task type T(Id: Integer; Prio: Integer; Phase: Integer; Period : Integer; Computation_Time : Integer; Relative_Deadline: Integer) is
      pragma Priority(Prio); -- A higher number gives a higher priority
    end;
 
@@ -80,7 +89,7 @@ procedure Rms2 is
      Dummy : Integer;
      Iterations : Integer;
      Healthy_System : Boolean := True;
-   begin
+begin
      Release := Clock + Milliseconds(Phase);
      delay until Release;
      Next := Release;
@@ -124,21 +133,18 @@ procedure Rms2 is
 
        Release := Next;
        delay until Release;
+	   
      end loop;
    end T;
-
-   -- Running Tasks
-   -- NOTE: All tasks should have a minimum phase, so that they have the same time base!
-   Task_1 : T(1, 4, Warm_Up_Time, 300, 100, 300);
-   Task_2 : T(2, 3, Warm_Up_Time, 400, 100, 400);
-   Task_3 : T(3, 2, Warm_Up_Time, 600, 100, 600);
-   Task_4 : T(4, 1, Warm_Up_Time, 1200, 200, 1200);
-
--- Main Program: Terminates after measuring start time
+   Task_1 : T(1, 5, Warm_Up_Time, 300, 100, 300);
+   Task_2 : T(2, 4, Warm_Up_Time, 400, 100, 400);
+   Task_3 : T(3, 3, Warm_Up_Time, 600, 100, 600);
+   --Task_4 : T(4, 2, Warm_Up_Time, 1200, 200, 1200);
 begin
-   Start := Clock; -- Central Start Time
-   null;
-end Rms2;
+	Start := Clock; -- Central Start Time
+	Watchdog_Timer.TimerExpired;
+null;
+end overloaddetection;
 
 
 
