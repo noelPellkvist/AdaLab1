@@ -59,7 +59,7 @@ task Watchdog_Timer is
    end Watchdog_Timer;
 
 task Helper is
-	pragma Priority(1);
+	pragma Priority(2);
    end Helper;
 
    task body Helper is
